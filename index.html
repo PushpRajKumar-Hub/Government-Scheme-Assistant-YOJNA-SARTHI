@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yojana Sarthi | Government Scheme Eligibility & Recommendation Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container nav-content">
+            <div class="brand">
+                <span class="badge-icon">🇮🇳</span>
+                <div>
+                    <h1>Yojana Sarthi</h1>
+                    <p>AI & Rule-Based Government Scheme Eligibility Assistant</p>
+                </div>
+            </div>
+            <div class="status-pill">{{ db_status }}</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hero Banner -->
+        <section class="hero">
+            <h2>Find Government Welfare Schemes You Qualify For</h2>
+            <p>Enter your age, annual income, occupation, location, and category. Our hybrid <strong>Rule-Based + Scikit-Learn ML</strong> engine evaluates eligibility and ranks top benefits for you.</p>
+        </section>
+
+        {% if error_msg %}
+        <div class="alert-error">{{ error_msg }}</div>
+        {% endif %}
+
+        <!-- Input Form Card -->
+        <section class="card form-card">
+            <h3>Citizen Profile Details</h3>
+            <form method="POST" action="/">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="full_name">Full Name (Optional)</label>
+                        <input type="text" id="full_name" name="full_name" placeholder="e.g., Aarav Sharma"
+                               value="{{ user_profile.full_name if user_profile else '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="age">Age (Years) *</label>
+                        <input type="number" id="age" name="age" min="0" max="120" required placeholder="e.g., 28"
+                               value="{{ user_profile.age if user_profile else '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="income">Annual Family Income (INR ₹) *</label>
+                        <input type="number" id="income" name="income" min="0" step="1000" required placeholder="e.g., 200000"
+                               value="{{ user_profile.income|int if user_profile else '' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="occupation">Occupation *</label>
+                        <select id="occupation" name="occupation" required>
+                            {% set occ = user_profile.occupation if user_profile else '' %}
+                            <option value="Student" {% if occ == 'Student' %}selected{% endif %}>Student</option>
+                            <option value="Farmer" {% if occ == 'Farmer' %}selected{% endif %}>Farmer</option>
+                            <option value="Self-Employed" {% if occ == 'Self-Employed' %}selected{% endif %}>Self-Employed / Entrepreneur</option>
+                            <option value="Small Business" {% if occ == 'Small Business' %}selected{% endif %}>Small Business / Street Vendor</option>
+                            <option value="Unorganized Worker" {% if occ == 'Unorganized Worker' %}selected{% endif %}>Unorganized Worker / Laborer</option>
+                            <option value="Unemployed" {% if occ == 'Unemployed' %}selected{% endif %}>Unemployed / Job Seeker</option>
+                            <option value="Senior Citizen" {% if occ == 'Senior Citizen' %}selected{% endif %}>Senior Citizen / Retired</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Area / Location Type *</label>
+                        <select id="location" name="location" required>
+                            {% set loc = user_profile.location if user_profile else '' %}
+                            <option value="Rural" {% if loc == 'Rural' %}selected{% endif %}>Rural (Village / Gram Panchayat)</option>
+                            <option value="Semi-Urban" {% if loc == 'Semi-Urban' %}selected{% endif %}>Semi-Urban (Town)</option>
+                            <option value="Urban" {% if loc == 'Urban' %}selected{% endif %}>Urban (City / Metro)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Social / Special Category *</label>
+                        <select id="category" name="category" required>
+                            {% set cat = user_profile.category if user_profile else '' %}
+                            <option value="General" {% if cat == 'General' %}selected{% endif %}>General</option>
+                            <option value="OBC" {% if cat == 'OBC' %}selected{% endif %}>OBC</option>
+                            <option value="SC" {% if cat == 'SC' %}selected{% endif %}>SC</option>
+                            <option value="ST" {% if cat == 'ST' %}selected{% endif %}>ST</option>
+                            <option value="Women" {% if cat == 'Women' %}selected{% endif %}>Women Entrepreneur / Girl Child</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="interest">Specific Need / Interest (Optional for ML Ranking)</label>
+                        <input type="text" id="interest" name="interest"
+                               placeholder="e.g., education scholarship, health insurance, business loan, house, pension"
+                               value="{{ user_profile.interest if user_profile else '' }}">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Check Eligibility & Recommend Schemes</button>
+                    <a href="/" class="btn-secondary">Reset</a>
+                </div>
+            </form>
+        </section>
+
+        <!-- Results Section -->
+        {% if eligible_schemes is not none %}
+        <section class="results-section">
+            <div class="results-header">
+                <h3>Eligible Schemes for {{ user_profile.full_name }} ({{ eligible_schemes|length }} Found)</h3>
+                <p>Ranked using Scikit-Learn TF-IDF Cosine Similarity & Income Fit</p>
+            </div>
+
+            {% if eligible_schemes %}
+            <div class="schemes-grid">
+                {% for scheme in eligible_schemes %}
+                <article class="scheme-card eligible">
+                    <div class="scheme-top">
+                        <span class="tag">{{ scheme.category_tag }}</span>
+                        <span class="score-badge">Match: {{ scheme.match_score }}%</span>
+                    </div>
+                    <h4>{{ scheme.scheme_name }}</h4>
+                    <p class="desc">{{ scheme.description }}</p>
+                    <div class="benefit-box">
+                        <strong>Key Benefit:</strong> {{ scheme.benefits }}
+                    </div>
+                    <ul class="reasons-list">
+                        {% for r in scheme.reasons %}
+                        <li>✓ {{ r }}</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="scheme-footer">
+                        <span>Age: {{ scheme.age_range }} | Max Income: ₹{{ "{:,}".format(scheme.max_income) }}</span>
+                        <a href="{{ scheme.official_link }}" target="_blank" rel="noopener">Official Portal →</a>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-box">
+                <p>No strict rule matches found for the exact criteria entered. Check the ML-recommended schemes or full directory below.</p>
+            </div>
+            {% endif %}
+
+            {% if related_schemes %}
+            <div class="results-header" style="margin-top: 2rem;">
+                <h3>Other Recommended Schemes (ML Similarity)</h3>
+                <p>Close matches based on your occupation, category, and keywords</p>
+            </div>
+            <div class="schemes-grid">
+                {% for scheme in related_schemes %}
+                <article class="scheme-card">
+                    <div class="scheme-top">
+                        <span class="tag">{{ scheme.category_tag }}</span>
+                        <span class="score-badge neutral">Relevance: {{ scheme.match_score }}%</span>
+                    </div>
+                    <h4>{{ scheme.scheme_name }}</h4>
+                    <p class="desc">{{ scheme.description }}</p>
+                    <div class="benefit-box">
+                        <strong>Key Benefit:</strong> {{ scheme.benefits }}
+                    </div>
+                    <div class="scheme-footer">
+                        <span>Age: {{ scheme.age_range }} | Max Income: ₹{{ "{:,}".format(scheme.max_income) }}</span>
+                        <a href="{{ scheme.official_link }}" target="_blank" rel="noopener">Details →</a>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <!-- All Available Schemes Directory -->
+        <section class="directory-section">
+            <h3>Complete Government Schemes Database ({{ all_schemes|length }} Schemes)</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scheme Name</th>
+                            <th>Sector</th>
+                            <th>Age Limit</th>
+                            <th>Max Income</th>
+                            <th>Target Group</th>
+                            <th>Key Benefit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in all_schemes %}
+                        <tr>
+                            <td><strong>{{ s.scheme_name }}</strong></td>
+                            <td><span class="tag-sm">{{ s.category_tag }}</span></td>
+                            <td>{{ s.min_age }}–{{ s.max_age }} yrs</td>
+                            <td>₹{{ "{:,}".format(s.max_income|int) }}</td>
+                            <td>{{ s.allowed_occupations }} ({{ s.allowed_social_categories }})</td>
+                            <td>{{ s.benefits }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Government Scheme Eligibility & Recommendation Assistant | Built with Python, Flask, Pandas, Scikit-Learn, MySQL & HTML/CSS</p>
+        </div>
+    </footer>
+</body>
+</html>
